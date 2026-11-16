@@ -1,0 +1,57 @@
+# Layer 01 (32-bit) --
+# **boot-critical options only**.
+#
+# Admission rule: without an entry in this file the kernel cannot reach
+# userspace on either board. Every driver -- including the SoC-specific ones
+# (PL08x DMA, hinfc610 NAND, SATA, SiI9134, ...) -- lives in the
+# architecture-independent driver layer (02-select-y.txt / 02-select-m.txt),
+# judged by the enabled nodes of the board device trees.
+#
+# Prerequisite: CONFIG_ARCH_MULTI_V7=y (carried by the distribution baseline;
+# the debug line re-raises it in 90-debug-arm.txt). With it off, ARCH_HISI
+# below is dependency-blocked and the whole machine support silently
+# disappears (the line-by-line verification reports it as "not landed").
+CONFIG_ARCH_HISI=y
+# hi3716cv200-ar513w.dtb is built under the ARCH_HI3716CV200 gate (dts
+# Makefile); harmless for the Hi3798MV100 (it only affects the mach table and
+# which ar513w dtb gets built).
+CONFIG_ARCH_HI3716CV200=y
+
+# Clocks gate tick and console: without the CRG drivers the SP804 timers and
+# the PL011 UART get no clock and the kernel never reaches userspace.
+CONFIG_COMMON_CLK=y
+# Both have `default ARCH_HISI`; pinned to survive baseline changes.
+CONFIG_COMMON_CLK_HI3798MV100=y
+CONFIG_COMMON_CLK_HI3716CV200=y
+# The Cortex-A9 private timer on the Hi3716CV200 is hard-wired dead: per-CPU
+# clock events come from one SP804 channel per core through the
+# hisilicon,hi3716cv200-smp-timer driver. Without it, SMP bring-up hangs.
+CONFIG_HISTB_SMP_TIMER=y
+
+# Boot protocol trio (verified on hardware): the vendor bootloader
+# (fastboot bootimg/bootm) passes ATAGs only and never puts a DTB pointer into
+# r2, so the DTB has to travel inside the kernel image (the packaging is
+# `cat zImage dtb`). Without CONFIG_ARM_APPENDED_DTB the kernel finds no device
+# tree and dies before the console is up ("Starting kernel ..." followed by
+# total silence); the kernel command line reaches the DT through
+# CONFIG_ARM_ATAG_DTB_COMPAT, which depends on APPENDED_DTB. The distribution
+# baseline carries these (debian32.config:692-695); pinned explicitly against
+# baseline drift. arm64 has no appended-DTB mechanism (the bootloader places
+# the DTB and passes its address in x0), so the arm64 layer does not carry
+# this trio.
+CONFIG_ARM_APPENDED_DTB=y
+CONFIG_ARM_ATAG_DTB_COMPAT=y
+CONFIG_ARM_ATAG_DTB_COMPAT_CMDLINE_FROM_BOOTLOADER=y
+
+# arm core capability: the distribution baseline sets these, the alldefconfig
+# base used by the debug line does not. Without VFP the first floating-point
+# instruction in userspace raises SIGILL (signal 4) and /init dies -- observed
+# on hardware with two different initramfs images.
+CONFIG_VFP=y
+CONFIG_VFPv3=y
+CONFIG_NEON=y
+CONFIG_KERNEL_MODE_NEON=y
+# Guard pin: Debian 7.2.11+deb13 baselines shipped CONFIG_ARM_LPAE=y, which the
+# Cortex-A7/A9 head.S rejects outright; 7.3.4+deb14 armmp baselines are
+# non-LPAE. Pinned so a future baseline cannot reintroduce it silently.
+# CONFIG_ARM_LPAE is not set

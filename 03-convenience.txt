@@ -1,0 +1,88 @@
+# Layer 03 (final): de-selections and on-board conveniences.
+#
+# First the "off" entries (architecture-independent de-selections; each one
+# documents why olddefconfig cannot infer it), then the conveniences the board
+# device trees have no nodes for but interactive use wants.
+
+# ============ de-selections ============
+
+# Disable compiler debug info: the baseline ships DEBUG_INFO=y +
+# DWARF_TOOLCHAIN_DEFAULT=y, which bloats vmlinux and slows the build. The
+# choice member name is mandatory: DEBUG_INFO itself has no prompt (a plain
+# bool in lib/Kconfig.debug), so CONFIG_DEBUG_INFO=n gets selected right back
+# by whichever choice member is still y, and the line-by-line verification
+# cannot see it. DEBUG_INFO_NONE only depends on DEBUG_KERNEL and carries no
+# toolchain probe, so it lands on both architectures.
+# Re-enable debug info through the debug line (04-debug-*), not here.
+CONFIG_DEBUG_INFO_NONE=y
+
+# Disable kernel module signing (the signer, not the verification
+# infrastructure). Two lines, deliberately paired:
+#   * turning MODULE_SIG off removes every child at once: FORCE/ALL/KEY/HASH/
+#     SHA256/SHA3_* depend on MODULE_SIG; KEY_TYPE (RSA/MLDSA) and FORMAT
+#     (init/Kconfig, def_bool n, selected by MODULE_SIG) follow.
+#   * MODULE_SIG is however selected by the LSM lockdown
+#     (security/lockdown/Kconfig: `select MODULE_SIG if MODULES`), so a bare
+#     not-set on MODULE_SIG snaps back to y (verified); SECURITY_LOCKDOWN_LSM
+#     must be deselected alongside it.
+# Side benefit: the build no longer requires openssl to generate
+# certs/signing_key.pem. Note the boundary: the SYSTEM_TRUSTED/SECONDARY/
+# BLACKLIST keyrings are verification infrastructure used by
+# SYSTEM_DATA_VERIFICATION platform code, not the signing side, and stay on.
+# CONFIG_SECURITY_LOCKDOWN_LSM is not set
+# CONFIG_MODULE_SIG is not set
+
+# ============ conveniences ============
+
+# --- mount root (needed before initramfs/insmod can run) ---
+CONFIG_CMDLINE_PARTITION=y
+CONFIG_EXT4_FS=y
+
+# --- common filesystems and codepages ---
+# Board-specific: the two arm32 boards root from NAND, so JFFS2/UBIFS are
+# built in there. They depend on MTD: the arm32 baseline sets MTD=y and they
+# land built in; the arm64 baseline sets MTD=m, so on arm64 they land as
+# modules, or stay absent entirely in builds that disable MTD support.
+CONFIG_JFFS2_FS=y
+CONFIG_UBIFS_FS=y
+CONFIG_F2FS_FS=y
+CONFIG_SQUASHFS=y
+CONFIG_SQUASHFS_COMPILE_DECOMP_SINGLE=y
+CONFIG_MSDOS_FS=y
+CONFIG_VFAT_FS=y
+CONFIG_NLS_CODEPAGE_437=y
+CONFIG_NLS_CODEPAGE_936=y
+CONFIG_NLS_ASCII=y
+CONFIG_NLS_ISO8859_1=y
+CONFIG_NLS_UTF8=y
+CONFIG_BLK_INLINE_ENCRYPTION=y
+CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK=y
+
+# --- fetching over the network, USB storage ---
+CONFIG_NFS_FS=y
+CONFIG_NFS_V2=y
+CONFIG_NFS_V3=y
+CONFIG_NFS_V4=y
+CONFIG_DNS_RESOLVER=y
+CONFIG_TCP_CONG_BBR=y
+CONFIG_DEFAULT_BBR=y
+CONFIG_USB_STORAGE=y
+CONFIG_BLK_DEV_SD=y
+
+# --- input and debug channels ---
+CONFIG_INPUT_EVDEV=y
+CONFIG_I2C_CHARDEV=y
+CONFIG_I2C_MUX=y
+
+# --- display client ---
+CONFIG_DRM_CLIENT_LOG=y
+
+# --- leaf algorithms nobody selects (filesystems and NFS need them) ---
+CONFIG_CRYPTO_CRC32=y
+CONFIG_CRYPTO_CRC32C=y
+CONFIG_CRYPTO_CTR=y
+CONFIG_CRYPTO_DEFLATE=y
+CONFIG_CRYPTO_SHA3=y
+CONFIG_CRYPTO_ECDH=y
+CONFIG_CRYPTO_ZSTD=y
+CONFIG_CRYPTO_DRBG=y

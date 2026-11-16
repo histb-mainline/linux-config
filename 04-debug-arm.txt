@@ -1,0 +1,98 @@
+# Layer 04 (debug line core, arm32: Hi3798MV100 + Hi3716CV200).
+#
+# Recipe: alldefconfig base + 01-arch-arm.txt + 02-select-y.txt + this file ->
+# olddefconfig. Fully decoupled from the distribution baseline;
+# 03-convenience.txt is not applied (none of it is dtb-required).
+# Every driver demanded by the board device trees comes from layers 01/02
+# (same dtb-reverse-lookup judgment as the release line); this file only
+# carries entries whose alldefconfig default is off but the debug line needs,
+# plus the debug posture.
+# Build targets: zImage + board dtbs; boot over tftp, debug through the serial
+# console, /dev/mem and debugfs.
+#
+# Writing rule: comments on their own lines; CONFIG lines never carry trailing
+# inline comments (merge/verification match whole lines).
+
+# --- platform gates (ARCH_HISI depends on ARCH_MULTI_V7; selects ARM_GIC,
+#     ARM_TIMER_SP804, POWER_RESET_HISI, ...; the alldefconfig "ARM system
+#     type" choice defaults to ARCH_MULTIPLATFORM -- pinned anyway) ---
+CONFIG_ARCH_MULTIPLATFORM=y
+CONFIG_ARCH_MULTI_V7=y
+CONFIG_ARCH_HISI=y
+CONFIG_ARCH_HI3716CV200=y
+
+# --- optimization posture, deselected ---
+# tiny.config leftovers, measured on the Hi3798MV100: with
+# LD_DEAD_CODE_DATA_ELIMINATION the gc-sections pass kills the kernel before
+# earlycon ("Starting kernel ..." followed by total silence and a Bootrom
+# reset); -Os flipped back to -O2 alongside it.
+# CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is not set
+# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
+
+# --- core capabilities (alldefconfig defaults them on; pinned) ---
+CONFIG_EXPERT=y
+CONFIG_SMP=y
+# EABI userspace (the initramfs busybox) requires it.
+CONFIG_AEABI=y
+CONFIG_PRINTK=y
+CONFIG_BUG=y
+# Symbolized oopses.
+CONFIG_KALLSYMS=y
+CONFIG_MULTIUSER=y
+CONFIG_FUTEX=y
+CONFIG_TTY=y
+CONFIG_BINFMT_ELF=y
+CONFIG_BINFMT_SCRIPT=y
+CONFIG_SHMEM=y
+CONFIG_TMPFS=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+
+# --- initramfs (the tftp-delivered ramdisk; one board archive is xz) ---
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+CONFIG_RD_XZ=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+
+# --- media default subtrees, deselected ---
+# With MEDIA_SUPPORT=y (driver layer) the camera/analog-TV/digital-TV
+# categories default on, DIGITAL_TV pulls in DVB_CORE (default y) and
+# MEDIA_SUBDRV_AUTOSELECT (default y), which drags in a hundred frontend
+# drivers. The board dts only instantiates platform nodes, so all three
+# categories are deselected. Two traps, both verified:
+#   * MEDIA_SUPPORT_FILTER defaults to n under EXPERT=y; with it off the three
+#     category prompts are hidden and `default y if !MEDIA_SUPPORT_FILTER`
+#     forces them on -- the filter must be raised before the categories.
+#   * MEDIA_PLATFORM_SUPPORT holds the HiSTB V4L2 drivers; its default flips
+#     with the filter, so it is pinned explicitly.
+CONFIG_MEDIA_SUPPORT_FILTER=y
+CONFIG_MEDIA_PLATFORM_SUPPORT=y
+# CONFIG_MEDIA_CAMERA_SUPPORT is not set
+# CONFIG_MEDIA_ANALOG_TV_SUPPORT is not set
+# CONFIG_MEDIA_DIGITAL_TV_SUPPORT is not set
+
+# --- debug posture ---
+# DEVMEM precedes STRICT_DEVMEM (STRICT depends on DEVMEM). /dev/mem fully
+# open: register census tools need it.
+CONFIG_DEVMEM=y
+CONFIG_STRICT_DEVMEM=n
+CONFIG_PROC_MEM_ALWAYS_FORCE=y
+CONFIG_DEBUG_FS=y
+CONFIG_DYNAMIC_DEBUG=y
+CONFIG_MAGIC_SYSRQ=y
+# Early console: diagnostics for silent boots.
+CONFIG_SERIAL_EARLYCON=y
+
+# --- dtb-required drivers whose alldefconfig default is off ---
+# The release line inherits these from the distribution baseline; the debug
+# base must spell them out.
+# tsensor node of the Hi3798MV100 dtsi (board temperature reads).
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_HISI_THERMAL=y
+# arm,cortex-a7-pmu of the cpus node (perf events).
+CONFIG_PERF_EVENTS=y
+CONFIG_HW_PERF_EVENTS=y
+CONFIG_ARM_PMU=y
+CONFIG_ARM_V7_PMU=y

@@ -1,0 +1,24 @@
+# Layer 01 (64-bit) --
+# **boot-critical options only**.
+#
+# Admission rule as on arm32: without an entry here the kernel cannot reach
+# userspace. Everything else (HDMI transmitter, ioconfig pinctrl, ...) lives
+# in the architecture-independent driver layer. Justification = the enabled
+# nodes of hi3798mv200.dtsi plus the board dts.
+CONFIG_ARCH_HISI=y
+# Clocks gate tick and console (both have `default ARCH_HISI`; pinned).
+CONFIG_COMMON_CLK=y
+CONFIG_COMMON_CLK_HI3798MV200=y
+
+# Deliberately disabled (zero demand from the dtb; the drivers would be dead
+# code):
+#   * USB3/dwc3: the xhci wrapper node in hi3798mv200.dtsi is
+#     status="disabled"; this SoC (Hi3798MV200H silicon is MV310) has no
+#     working USB3 in the vendor code (CRG44/98 reject writes). PHY_HISTB_COMBPHY
+#     stays off too -- only the disabled dwc3 references the combphy.
+#   * HIX5HD2_GMAC: gmac@9840000 is status="disabled" in the dtsi; this board
+#     nets through femac (HISI_FEMAC in the driver layer).
+#   * MTD/NAND and SATA: the board boots from eMMC, no dts nodes.
+#   * CONFIG_ARM_LPAE does not exist on arm64.
+#   * arm64 has no appended-DTB mechanism (the bootloader places the DTB and
+#     passes its address in x0), so the boot-protocol trio does not apply.
