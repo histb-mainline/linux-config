@@ -1,0 +1,75 @@
+# Layer 03 (debug line core, architecture-common).
+#
+# Debug line recipe: alldefconfig base + 01-arch-<arch>.txt + 02-select-y.txt
+# + this file + 04-debug-<arch>.txt -> olddefconfig. Fully decoupled from the
+# distribution baseline; 03-convenience.txt belongs to the release line and is
+# not applied there. The arch-specific remainder (platform gates, boot
+# methods, PMU model, suspend diagnostics) lives in 04-debug-<arch>.txt.
+#
+# Writing rule: comments on their own lines; CONFIG lines never carry trailing
+# inline comments (merge/verification match whole lines).
+
+# --- optimization posture, deselected ---
+# -Os flipped back to -O2.
+# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
+
+# --- core capabilities (alldefconfig defaults them on; pinned) ---
+CONFIG_EXPERT=y
+CONFIG_SMP=y
+CONFIG_PRINTK=y
+CONFIG_BUG=y
+CONFIG_KALLSYMS=y
+CONFIG_MULTIUSER=y
+CONFIG_FUTEX=y
+CONFIG_TTY=y
+CONFIG_BINFMT_ELF=y
+CONFIG_BINFMT_SCRIPT=y
+CONFIG_SHMEM=y
+CONFIG_TMPFS=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+CONFIG_INET=y
+CONFIG_PACKET=y
+CONFIG_UNIX=y
+
+# --- initramfs (the tftp-delivered ramdisk) ---
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+CONFIG_RD_XZ=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+
+# --- media default subtrees, deselected ---
+# With MEDIA_SUPPORT=y (driver layer) the camera/analog-TV/digital-TV
+# categories default on, DIGITAL_TV pulls in DVB_CORE (default y) and
+# MEDIA_SUBDRV_AUTOSELECT (default y), which drags in a hundred frontend
+# drivers. The board dts only instantiates platform nodes, so all three
+# categories are deselected. Two traps, both verified:
+#   * MEDIA_SUPPORT_FILTER defaults to n under EXPERT=y; with it off the three
+#     category prompts are hidden and `default y if !MEDIA_SUPPORT_FILTER`
+#     forces them on -- the filter must be raised before the categories.
+#   * MEDIA_PLATFORM_SUPPORT holds the HiSTB V4L2 drivers; its default flips
+#     with the filter, so it is pinned explicitly.
+CONFIG_MEDIA_SUPPORT_FILTER=y
+CONFIG_MEDIA_PLATFORM_SUPPORT=y
+# CONFIG_MEDIA_CAMERA_SUPPORT is not set
+# CONFIG_MEDIA_ANALOG_TV_SUPPORT is not set
+# CONFIG_MEDIA_DIGITAL_TV_SUPPORT is not set
+
+# --- debug posture ---
+# DEVMEM precedes STRICT_DEVMEM (STRICT depends on DEVMEM). /dev/mem fully
+# open: register census tools need it.
+CONFIG_DEVMEM=y
+CONFIG_STRICT_DEVMEM=n
+CONFIG_PROC_MEM_ALWAYS_FORCE=y
+CONFIG_DEBUG_FS=y
+CONFIG_DYNAMIC_DEBUG=y
+CONFIG_MAGIC_SYSRQ=y
+# Early console: diagnostics for silent boots.
+CONFIG_SERIAL_EARLYCON=y
+
+# --- perf events core ---
+# The per-arch PMU symbol (ARM_V7_PMU / ARM_PMUV3) stays in 04-debug-<arch>.
+CONFIG_PERF_EVENTS=y
+CONFIG_HW_PERF_EVENTS=y
+CONFIG_ARM_PMU=y

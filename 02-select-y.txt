@@ -61,7 +61,6 @@ CONFIG_GPIO_PL061=y
 CONFIG_ARM_SP805_WATCHDOG=y
 CONFIG_HISI_FEMAC=y
 CONFIG_MDIO_HISI_FEMAC=y
-CONFIG_HISI_FESTA_PHY=y
 CONFIG_PHY_HISI_INNO_USB2=y
 CONFIG_USB_EHCI_HCD_PLATFORM=y
 CONFIG_USB_OHCI_HCD_PLATFORM=y
@@ -81,9 +80,6 @@ CONFIG_V4L_MEM2MEM_DRIVERS=y
 CONFIG_VIDEO_HISTB_VDEC=y
 CONFIG_VIDEO_HISTB_VENC=y
 CONFIG_VIDEO_HISTB_VPSS=y
-# EDID can be forced per connector with drm.edid_firmware=<conn>:edid/*.bin;
-# this bool is its switch.
-CONFIG_DRM_LOAD_EDID_FIRMWARE=y
 
 # SoC-specific IP drivers from the unified arm32 image (inert on the other
 # architecture, kept so one binary covers both boards).

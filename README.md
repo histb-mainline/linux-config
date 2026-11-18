@@ -17,17 +17,37 @@ products and verification output are working files and are not committed.
 | 2 selection | `02-select-y.txt` / `02-select-m.txt` | every board driver demanded by the enabled device-tree nodes -- including SoC-specific IP -- in **two mutually exclusive flavors**: `-y` everything built in (release standard; boots without an initramfs), `-m` modularized (serial console and root storage stay built in; bool switches are unaffected) |
 | 3 final | `03-convenience.txt` | architecture-independent de-selections (compiler debug info, kernel module signing) and on-board conveniences (filesystems, NFS, USB storage, input/debug channels, leaf crypto) |
 
-`04-debug-<arch>.txt` is the debug line: an `alldefconfig` base -- fully
-decoupled from the distribution baseline -- plus layers 01 and 02-select-y plus
-the debug core. It carries every dtb-required driver (same judgment as the
-release line), the initramfs delivery core, the debug posture and the
-deselection of the media default subtrees. `03-convenience.txt` is not applied
-there.
+The debug line is an `alldefconfig` base -- fully decoupled from the
+distribution baseline -- plus layers 01 and 02-select-y plus the debug layers:
+`03-debug-common.txt` carries the architecture-common capabilities (core
+capability pins, the initramfs delivery core, the debug posture, the
+deselection of the media default subtrees and the perf-events core);
+`04-debug-<arch>.txt` carries the arch-specific remainder (platform/boot
+gates, per-arch optimization traps, suspend diagnostics, tsensor, the per-arch
+PMU symbol). Both together carry every dtb-required driver (same judgment as
+the release line). `03-convenience.txt` is not applied there.
+
+## Products
+
+Two published products per architecture, plus the internal debug line:
+
+| Product | Recipe | initramfs | Posture |
+|---|---|---|---|
+| Debian-style | arch + **select-m** | **required** -- the initramfs delivers the module set and mounts root | distribution baseline untouched |
+| direct-boot | arch + **select-y** + **convenience** | not required -- every driver built in, mounts root from eMMC/NAND | de-selections from the convenience layer apply (compiler debug info, module signing) |
+
+Both arm32 products share one zImage; boards differ only by the DTB and the
+carrier packaging. The debug line (`03-debug-common.txt` + `04-debug-<arch>`
+on an `alldefconfig` base) is a working tool, not a published product.
+
+The initramfs prerequisites for the Debian-style product (`BLK_DEV_INITRD`,
+`RD_GZIP`, `RD_XZ`, `DEVTMPFS`) are carried by the distribution baseline; the
+serial console is the only driver select-m keeps built in.
 
 ## Recipe
 
 ```sh
-sh fetch-debian-config.sh armhf      # writes debian32.config at the repo top
+./fetch-debian-config.sh armhf      # writes debian32.config at the repo top
 
 OUT=/tmp/out.config
 cp debian32.config $OUT
@@ -38,20 +58,21 @@ KCONFIG_CONFIG=$OUT ./merge-layers.sh arm 01-arch-arm.txt 02-select-y.txt \
 ```
 
 For the debug line the base is `alldefconfig` instead of the distribution
-config, and layer 4 is not applied:
+config, and layer 03-convenience is not applied -- the debug layers
+`03-debug-common.txt` + `04-debug-<arch>.txt` are applied instead:
 
 ```sh
 KDIR=/path/to/linux
 KCONFIG_CONFIG=$OUT make -C $KDIR ARCH=arm \
     CROSS_COMPILE=arm-linux-gnueabihf- alldefconfig < /dev/null
 KCONFIG_CONFIG=$OUT KDIR=$KDIR ./merge-layers.sh arm \
-    01-arch-arm.txt 02-select-y.txt 04-debug-arm.txt
+    01-arch-arm.txt 02-select-y.txt 03-debug-common.txt 04-debug-arm.txt
 ```
 
 Generate the arm64 products by swapping `debian64.config` (repo top) /
 `01-arch-arm64.txt` and `ARCH=arm64`:
 release64 = 01-arch-arm64 + 02-select-y + 03-convenience, debug64 =
-01-arch-arm64 + 02-select-y + 04-debug-arm64.
+01-arch-arm64 + 02-select-y + 03-debug-common + 04-debug-arm64.
 
 The generated products are working files and are not committed; regenerate
 them per target.

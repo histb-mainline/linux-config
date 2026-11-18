@@ -1,36 +1,14 @@
-# Layer 04 (debug line core, arm64: Hi3798MV200H).
+# Layer 04 (debug line arch remainder, arm64: Hi3798MV200H).
 #
-# Recipe: alldefconfig base + 01-arch-arm64.txt + 02-select-y.txt + this file ->
-# olddefconfig. Fully decoupled from the distribution baseline;
-# 03-convenience.txt is not applied (none of it is dtb-required).
+# Recipe: alldefconfig base + 01-arch-arm64.txt + 02-select-y.txt +
+# 03-debug-common.txt + this file -> olddefconfig. This file carries the
+# arm64-only boot gates and the per-arch PMU symbol; everything
+# architecture-common lives in 03-debug-common.txt.
 # Build targets: Image + board dtbs; boot over tftp, debug through the serial
 # console, /dev/mem and debugfs.
 #
 # Writing rule: comments on their own lines; CONFIG lines never carry trailing
 # inline comments (merge/verification match whole lines).
-
-# --- optimization posture, deselected ---
-# -Os flipped back to -O2. LD_DEAD_CODE_DATA_ELIMINATION is not spelled out
-# here: arm64 has no HAVE_LD_DEAD_CODE_DATA_ELIMINATION, the symbol is
-# invisible and "off" holds by absence (measured: the arm32 equivalent had to
-# be deselected explicitly -- see 90-debug-arm.txt).
-# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
-
-# --- core capabilities (alldefconfig defaults them on; pinned) ---
-CONFIG_EXPERT=y
-CONFIG_SMP=y
-CONFIG_PRINTK=y
-CONFIG_BUG=y
-CONFIG_KALLSYMS=y
-CONFIG_MULTIUSER=y
-CONFIG_FUTEX=y
-CONFIG_TTY=y
-CONFIG_BINFMT_ELF=y
-CONFIG_BINFMT_SCRIPT=y
-CONFIG_SHMEM=y
-CONFIG_TMPFS=y
-CONFIG_PROC_FS=y
-CONFIG_SYSFS=y
 
 # --- PSCI boot (the board dts sets enable-method=psci; SMP needs it for the
 #     secondary cores) ---
@@ -38,34 +16,13 @@ CONFIG_ARM_PSCI_FW=y
 CONFIG_ARM_GIC=y
 CONFIG_ARM_ARCH_TIMER=y
 
-# --- initramfs (the tftp-delivered ramdisk) ---
-CONFIG_BLK_DEV_INITRD=y
-CONFIG_RD_GZIP=y
-CONFIG_RD_XZ=y
-CONFIG_DEVTMPFS=y
-CONFIG_DEVTMPFS_MOUNT=y
+# --- optimization posture ---
+# LD_DEAD_CODE_DATA_ELIMINATION is not spelled out here: arm64 has no
+# HAVE_LD_DEAD_CODE_DATA_ELIMINATION, the symbol is invisible and "off" holds
+# by absence (measured: the arm32 equivalent had to be deselected explicitly
+# -- see 04-debug-arm.txt).
 
-# --- media default subtrees, deselected (see 04-debug-arm.txt for the two
-#     traps: the filter default and the platform-category flip) ---
-CONFIG_MEDIA_SUPPORT_FILTER=y
-CONFIG_MEDIA_PLATFORM_SUPPORT=y
-# CONFIG_MEDIA_CAMERA_SUPPORT is not set
-# CONFIG_MEDIA_ANALOG_TV_SUPPORT is not set
-# CONFIG_MEDIA_DIGITAL_TV_SUPPORT is not set
-
-# --- debug posture ---
-# /dev/mem fully open: register census tools need it.
-CONFIG_DEVMEM=y
-CONFIG_STRICT_DEVMEM=n
-CONFIG_PROC_MEM_ALWAYS_FORCE=y
-CONFIG_DEBUG_FS=y
-CONFIG_DYNAMIC_DEBUG=y
-CONFIG_MAGIC_SYSRQ=y
-CONFIG_SERIAL_EARLYCON=y
-
-# --- dtb-required drivers whose alldefconfig default is off ---
-# arm,cortex-a53-pmu of the cpus node (perf events).
-CONFIG_PERF_EVENTS=y
-CONFIG_HW_PERF_EVENTS=y
-CONFIG_ARM_PMU=y
+# --- dtb-required driver whose alldefconfig default is off ---
+# arm,cortex-a53-pmu of the cpus node (perf events; the common core is in
+# 03-debug-common.txt).
 CONFIG_ARM_PMUV3=y
