@@ -87,10 +87,10 @@ result; lines with `=n` land as `# CONFIG_X is not set`.
 
 ### Known cross-architecture absences
 
-`PHY_HI3716CV200_SATA` depends on `ARCH_HI3716CV200` (arm32 only) and
-`DRM_HISTB_HDMI` depends on `ARM64` (arm64 only): in the shared selection
-layer these lines legitimately never land on the other architecture and are
-reported as absent.
+`PHY_HI3716CV200_SATA` and `PHY_HI3716CV200_USB2` depend on
+`ARCH_HI3716CV200` (arm32 only) and `DRM_HISTB_HDMI` depends on `ARM64`
+(arm64 only): in the shared selection layer these lines legitimately never
+land on the other architecture and are reported as absent.
 
 ## Writing discipline
 
